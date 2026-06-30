@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { base44 } from "@base44/vite-plugin";
+import base44 from "@base44/vite-plugin";
 import path from "node:path";
 
 export default defineConfig({
@@ -17,22 +17,7 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "src"),
     },
-  },
-
-  server: {
-    host: true,
-    port: 5173,
-  },
-
-  preview: {
-    host: true,
-    port: 4173,
-  },
-
-  build: {
-    sourcemap: false,
-    target: "es2020",
   },
 });
