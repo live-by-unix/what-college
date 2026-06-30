@@ -12,6 +12,10 @@ What College is a simple site to determine what college you want to go to. You c
 * CSS
 * JS (JSX)
 
+## Link
+If you were here for the link, here you are: 
+[LINK](https://whatcollege.pages.dev)
+
 ## Licensing
 Under the MIT [License](LICENSE), free to use, modify, and share. 
 
