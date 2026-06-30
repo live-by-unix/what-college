@@ -1,5 +1,7 @@
 ## What College?
 What College is a simple site to determine what college you want to go to. You can use What College to help you decide for the future. 
+<img width="1024" height="1024" alt="image" src="https://github.com/user-attachments/assets/388435a3-f388-47da-b6d9-ae817245bb15" />
+
 
 **This README covers tech stack, licensing, and has a few quick previews**
 
