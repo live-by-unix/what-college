@@ -22,13 +22,13 @@ export default function PDFExportButton({ results, gpas }) {
       doc.text("College Admission Prediction Report", 20, 33);
       doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 39);
 
-      // GPA Summary
       doc.setDrawColor(226, 232, 240);
       doc.line(20, 45, pageWidth - 20, 45);
 
+      // GPA Profile
       doc.setFontSize(12);
       doc.setTextColor(30, 41, 59);
-      doc.text("Your GPA Profile", 20, 55);
+      doc.text("Your Profile", 20, 55);
 
       doc.setFontSize(9);
       doc.setTextColor(71, 85, 105);
@@ -37,24 +37,65 @@ export default function PDFExportButton({ results, gpas }) {
       doc.text(`Academic: ${gpas.academic.toFixed(2)}`, 140, 63);
       doc.text(`10-12 GPA: ${gpas.grade10to12.toFixed(2)}`, 20, 70);
 
+      let y = 77;
+
+      // Test Scores
+      if (gpas.sat) {
+        doc.text(`SAT: ${gpas.sat}`, 20, y);
+        y += 7;
+      }
+      if (gpas.act) {
+        doc.text(`ACT: ${gpas.act}`, 20, y);
+        y += 7;
+      }
+
       // AP Courses
       const apCourses = gpas.apCourses || [];
       if (apCourses.length > 0) {
-        doc.setFontSize(9);
-        doc.setTextColor(71, 85, 105);
         const apText = `AP Courses (${apCourses.length}): ${apCourses.join(", ")}`;
         const splitAP = doc.splitTextToSize(apText, pageWidth - 40);
-        doc.text(splitAP, 20, 77);
+        doc.text(splitAP, 20, y);
+        y += splitAP.length * 5;
+      }
+
+      // Extracurriculars
+      const ecs = gpas.extracurriculars || [];
+      if (ecs.length > 0) {
+        const ecText = `Extracurriculars (${ecs.length}): ${ecs.join(", ")}`;
+        const splitEC = doc.splitTextToSize(ecText, pageWidth - 40);
+        doc.text(splitEC, 20, y);
+        y += splitEC.length * 5;
+      }
+
+      // Honors
+      const honors = gpas.honors || [];
+      if (honors.length > 0) {
+        const honText = `Honors & Awards (${honors.length}): ${honors.join(", ")}`;
+        const splitHon = doc.splitTextToSize(honText, pageWidth - 40);
+        doc.text(splitHon, 20, y);
+        y += splitHon.length * 5;
+      }
+
+      // Personal Factors
+      const pf = gpas.personalFactors || {};
+      const pfItems = [
+        pf.firstGen && "First-generation",
+        pf.legacy && "Legacy",
+        pf.recruitedAthlete && "Recruited Athlete",
+      ].filter(Boolean);
+      if (pfItems.length > 0) {
+        doc.text(`Personal Factors: ${pfItems.join(", ")}`, 20, y);
+        y += 7;
       }
 
       // Results table
-      let y = apCourses.length > 0 ? 90 : 85;
+      y += 3;
+      if (y > 270) { doc.addPage(); y = 20; }
       doc.setFontSize(12);
       doc.setTextColor(30, 41, 59);
       doc.text("Results Summary", 20, y);
       y += 8;
 
-      // Header
       doc.setFontSize(8);
       doc.setTextColor(100, 116, 139);
       doc.text("University", 20, y);
@@ -109,7 +150,7 @@ export default function PDFExportButton({ results, gpas }) {
       variant="outline"
       onClick={exportPDF}
       disabled={exporting}
-      className="rounded-xl border-slate-200 gap-2 text-sm h-9"
+      className="rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 gap-2 text-sm h-9"
       aria-label="Export results to PDF"
     >
       {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}

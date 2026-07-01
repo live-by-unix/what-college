@@ -12,26 +12,26 @@ export default function SearchAndFilter({ filters, onFilterChange }) {
     <div className="space-y-4">
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
         <Input
           type="search"
           placeholder="Search universities..."
           value={filters.search}
           onChange={(e) => onFilterChange("search", e.target.value)}
-          className="pl-10 h-11 rounded-xl border-slate-200 bg-white text-sm"
+          className="pl-10 h-11 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 dark:text-slate-100 text-sm"
           aria-label="Search universities"
         />
       </div>
 
       {/* Filters row */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <div className="flex items-center gap-1.5 text-xs text-slate-500 shrink-0">
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 shrink-0">
           <SlidersHorizontal className="w-3.5 h-3.5" />
           <span>Filters</span>
         </div>
 
         <Select value={filters.rating} onValueChange={(val) => onFilterChange("rating", val)}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 min-w-[120px]" aria-label="Filter by rating">
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 min-w-[120px]" aria-label="Filter by rating">
             <SelectValue placeholder="Rating" />
           </SelectTrigger>
           <SelectContent>
@@ -42,7 +42,7 @@ export default function SearchAndFilter({ filters, onFilterChange }) {
         </Select>
 
         <Select value={filters.state} onValueChange={(val) => onFilterChange("state", val)}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 min-w-[100px]" aria-label="Filter by state">
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 min-w-[100px]" aria-label="Filter by state">
             <SelectValue placeholder="State" />
           </SelectTrigger>
           <SelectContent>
@@ -54,7 +54,7 @@ export default function SearchAndFilter({ filters, onFilterChange }) {
         </Select>
 
         <Select value={filters.difficulty} onValueChange={(val) => onFilterChange("difficulty", val)}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 min-w-[120px]" aria-label="Filter by difficulty">
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 min-w-[120px]" aria-label="Filter by difficulty">
             <SelectValue placeholder="Difficulty" />
           </SelectTrigger>
           <SelectContent>
@@ -65,7 +65,7 @@ export default function SearchAndFilter({ filters, onFilterChange }) {
         </Select>
 
         <Select value={filters.major} onValueChange={(val) => onFilterChange("major", val)}>
-          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 min-w-[120px]" aria-label="Filter by major">
+          <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 min-w-[120px]" aria-label="Filter by major">
             <SelectValue placeholder="Major" />
           </SelectTrigger>
           <SelectContent>

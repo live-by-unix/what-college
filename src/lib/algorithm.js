@@ -26,16 +26,23 @@ function computeCompositeScore(gpas) {
 
 // Step 3: Percentile comparison
 function percentileScore(compositeGPA, college) {
-  const gpa = compositeGPA / 100 * 4.0; // convert back to 4.0 scale for comparison
+  const gpa = compositeGPA / 100 * 4.0;
   const { gpa_25, gpa_50, gpa_75 } = college;
 
   if (gpa >= gpa_75) {
-    return 85 + ((gpa - gpa_75) / (4.0 - gpa_75)) * 15;
+    const range = 4.0 - gpa_75;
+    if (range <= 0) return 100;
+    return 85 + ((gpa - gpa_75) / range) * 15;
   } else if (gpa >= gpa_50) {
-    return 55 + ((gpa - gpa_50) / (gpa_75 - gpa_50)) * 30;
+    const range = gpa_75 - gpa_50;
+    if (range <= 0) return 70;
+    return 55 + ((gpa - gpa_50) / range) * 30;
   } else if (gpa >= gpa_25) {
-    return 25 + ((gpa - gpa_25) / (gpa_50 - gpa_25)) * 30;
+    const range = gpa_50 - gpa_25;
+    if (range <= 0) return 40;
+    return 25 + ((gpa - gpa_25) / range) * 30;
   } else {
+    if (gpa_25 <= 0) return 0;
     return Math.max(0, (gpa / gpa_25) * 25);
   }
 }
@@ -50,11 +57,8 @@ function computeRigorBonus(apCourses, college) {
   if (!apCourses || apCourses.length === 0) return 0;
 
   const count = apCourses.length;
-  // Base bonus: diminishing returns per AP
-  // 1 AP = +1.5, 5 APs = +5.3, 10 APs = +7.6, capped at +10
   let bonus = Math.min(10, 1.5 * count * (1 - count * 0.03));
 
-  // Category alignment bonus: APs in subjects the college is known for
   const stemAPs = apCourses.filter(a =>
     a.includes("Calculus") || a.includes("Computer Science") || a.includes("Physics") ||
     a.includes("Chemistry") || a.includes("Biology") || a.includes("Statistics") ||
@@ -84,8 +88,72 @@ function computeRigorBonus(apCourses, college) {
   return bonus;
 }
 
+// Step 4c: Test score bonus (SAT/ACT)
+function computeTestScoreBonus(profile, college) {
+  const { sat, act } = profile;
+  let bonus = 0;
+  const weight = 0.7 + college.difficulty_index * 0.05;
+
+  if (sat && sat >= 400) {
+    if (sat >= 1550) bonus = 8;
+    else if (sat >= 1500) bonus = 6;
+    else if (sat >= 1450) bonus = 5;
+    else if (sat >= 1400) bonus = 4;
+    else if (sat >= 1300) bonus = 2;
+    else if (sat >= 1200) bonus = 0;
+    else bonus = -3;
+    bonus *= weight;
+  } else if (act && act >= 1) {
+    if (act >= 35) bonus = 8;
+    else if (act >= 33) bonus = 6;
+    else if (act >= 31) bonus = 5;
+    else if (act >= 29) bonus = 4;
+    else if (act >= 27) bonus = 2;
+    else if (act >= 24) bonus = 0;
+    else bonus = -3;
+    bonus *= weight;
+  }
+
+  return bonus;
+}
+
+// Step 4d: Extracurricular bonus
+function computeExtracurricularBonus(activities) {
+  if (!activities || activities.length === 0) return 0;
+  const count = activities.length;
+  let bonus = Math.min(8, 1.5 * count * (1 - count * 0.04));
+
+  const leadership = activities.filter(a =>
+    a.includes("President") || a.includes("Officer") || a.includes("Founder") || a.includes("Leader")
+  );
+  const research = activities.filter(a =>
+    a.includes("Research") || a.includes("Published") || a.includes("Internship")
+  );
+  bonus += Math.min(3, leadership.length * 1.2);
+  bonus += Math.min(2, research.length * 1.0);
+
+  return bonus;
+}
+
+// Step 4e: Honors bonus
+function computeHonorsBonus(honors) {
+  if (!honors || honors.length === 0) return 0;
+  return Math.min(5, honors.length * 1.5);
+}
+
+// Step 4f: Personal factors bonus
+function computePersonalFactorsBonus(factors, college) {
+  if (!factors) return 0;
+  let bonus = 0;
+  if (factors.firstGen) bonus += 2;
+  if (factors.legacy && college.difficulty_index >= 7) bonus += 2;
+  if (factors.recruitedAthlete) bonus += 4;
+  return bonus;
+}
+
 // Step 5: Clamp to 0-100
 function clamp(value) {
+  if (isNaN(value)) return 0;
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
@@ -113,6 +181,8 @@ function generateSuggestions(gpas, normalized, college, chance, apCourses) {
   };
 
   const apCount = apCourses ? apCourses.length : 0;
+  const ecCount = gpas.extracurriculars ? gpas.extracurriculars.length : 0;
+  const honorsCount = gpas.honors ? gpas.honors.length : 0;
 
   // Weakest GPA
   if (weakest[0][1] < 85) {
@@ -144,11 +214,6 @@ function generateSuggestions(gpas, normalized, college, chance, apCourses) {
         description: `You've taken ${apCount} AP course${apCount === 1 ? "" : "s"}. For this highly selective school, aim for 8+ APs — especially in your areas of interest.`,
       });
     }
-    suggestions.push({
-      type: "extracurricular",
-      title: "Develop Leadership & Depth",
-      description: "Highly selective schools value deep involvement. Lead clubs, compete nationally, or pursue meaningful research projects.",
-    });
   } else if (college.difficulty_index >= 5) {
     if (apCount === 0) {
       suggestions.push({
@@ -192,6 +257,46 @@ function generateSuggestions(gpas, normalized, college, chance, apCourses) {
     }
   }
 
+  // Test score suggestions
+  if (gpas.sat && gpas.sat < 1300 && college.difficulty_index >= 7) {
+    suggestions.push({
+      type: "test",
+      title: "Consider Retaking the SAT",
+      description: `Your SAT score of ${gpas.sat} is below the typical range for this selective school. Aiming for 1450+ would significantly improve your chances.`,
+    });
+  }
+  if (gpas.act && gpas.act < 28 && college.difficulty_index >= 7) {
+    suggestions.push({
+      type: "test",
+      title: "Consider Retaking the ACT",
+      description: `Your ACT score of ${gpas.act} is below the typical range for this selective school. Aiming for 32+ would significantly improve your chances.`,
+    });
+  }
+
+  // Extracurricular suggestions
+  if (ecCount === 0 && college.difficulty_index >= 6) {
+    suggestions.push({
+      type: "extracurricular",
+      title: "Get Involved Outside Class",
+      description: "This school values well-rounded applicants. Join clubs, volunteer, or pursue leadership roles in activities you're passionate about.",
+    });
+  } else if (ecCount > 0 && ecCount < 3 && college.difficulty_index >= 7) {
+    suggestions.push({
+      type: "extracurricular",
+      title: "Deepen Your Extracurriculars",
+      description: `You have ${ecCount} activit${ecCount === 1 ? "y" : "ies"}. Selective schools prefer depth — seek leadership roles or state/national-level achievement in your top activities.`,
+    });
+  }
+
+  // Honors suggestions
+  if (honorsCount === 0 && college.difficulty_index >= 8) {
+    suggestions.push({
+      type: "extracurricular",
+      title: "Pursue Recognized Awards",
+      description: "Elite schools look for distinguished achievements. Consider National Merit, Scholastic Awards, or state/national competitions.",
+    });
+  }
+
   // Positive rigor feedback
   if (apCount >= 8 && college.difficulty_index >= 7) {
     suggestions.push({
@@ -199,6 +304,20 @@ function generateSuggestions(gpas, normalized, college, chance, apCourses) {
       title: "Strong Course Rigor!",
       description: `With ${apCount} AP courses, your academic rigor is impressive. Highlight this in your application — selective schools value this highly.`,
     });
+  }
+
+  // Positive extracurricular feedback
+  if (ecCount >= 4) {
+    const hasLeadership = gpas.extracurriculars && gpas.extracurriculars.some(a =>
+      a.includes("President") || a.includes("Officer") || a.includes("Founder") || a.includes("Leader")
+    );
+    if (hasLeadership) {
+      suggestions.push({
+        type: "extracurricular",
+        title: "Strong Extracurricular Profile!",
+        description: `With ${ecCount} activities including leadership roles, your profile stands out. Emphasize your impact and growth in your application essays.`,
+      });
+    }
   }
 
   // Chance-based suggestions
@@ -225,7 +344,7 @@ function generateSuggestions(gpas, normalized, college, chance, apCourses) {
     });
   }
 
-  return suggestions.slice(0, 5);
+  return suggestions.slice(0, 6);
 }
 
 // Main function
@@ -234,7 +353,12 @@ export function predictAdmission(gpas, college) {
   const baseScore = percentileScore(composite, college);
   const difficultyAdjusted = applyDifficultyAdjustment(baseScore, college.difficulty_index);
   const rigorBonus = computeRigorBonus(gpas.apCourses || [], college);
-  const adjusted = difficultyAdjusted + rigorBonus;
+  const testBonus = computeTestScoreBonus(gpas, college);
+  const ecBonus = computeExtracurricularBonus(gpas.extracurriculars || []);
+  const honorsBonus = computeHonorsBonus(gpas.honors || []);
+  const personalBonus = computePersonalFactorsBonus(gpas.personalFactors || {}, college);
+  const totalBonus = rigorBonus + testBonus + ecBonus + honorsBonus + personalBonus;
+  const adjusted = difficultyAdjusted + totalBonus;
   const chance = clamp(adjusted);
   const rating = getRating(chance);
   const suggestions = generateSuggestions(gpas, normalized, college, chance, gpas.apCourses || []);
@@ -246,6 +370,11 @@ export function predictAdmission(gpas, college) {
     compositeGPA: (composite / 100 * 4.0).toFixed(2),
     normalized,
     rigorBonus: Math.round(rigorBonus * 10) / 10,
+    testBonus: Math.round(testBonus * 10) / 10,
+    ecBonus: Math.round(ecBonus * 10) / 10,
+    honorsBonus: Math.round(honorsBonus * 10) / 10,
+    personalBonus: Math.round(personalBonus * 10) / 10,
+    totalBonus: Math.round(totalBonus * 10) / 10,
   };
 }
 

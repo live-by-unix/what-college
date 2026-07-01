@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { GraduationCap, ArrowLeft, ArrowUpDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +10,7 @@ import CollegeCard from "@/components/whatcollege/CollegeCard";
 import CollegeModal from "@/components/whatcollege/CollegeModal";
 import PDFExportButton from "@/components/whatcollege/PDFExportButton";
 import StatsSummary from "@/components/whatcollege/StatsSummary";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const difficultyRanges = {
   "All Levels": [0, 10],
@@ -20,11 +21,14 @@ const difficultyRanges = {
 };
 
 export default function Results() {
-  const navigate = useNavigate();
   const params = new URLSearchParams(window.location.search);
 
   const apCoursesParam = params.get("aps") || "";
   const apCourses = apCoursesParam ? apCoursesParam.split(",").filter(Boolean) : [];
+  const ecsParam = params.get("ecs") || "";
+  const extracurriculars = ecsParam ? ecsParam.split("|").filter(Boolean) : [];
+  const honParam = params.get("hon") || "";
+  const honors = honParam ? honParam.split("|").filter(Boolean) : [];
 
   const gpas = {
     unweighted: parseFloat(params.get("uw")) || 3.5,
@@ -32,9 +36,18 @@ export default function Results() {
     academic: parseFloat(params.get("ac")) || 3.5,
     grade10to12: parseFloat(params.get("g")) || 3.5,
     apCourses,
+    sat: params.get("sat") ? parseInt(params.get("sat")) : null,
+    act: params.get("act") ? parseInt(params.get("act")) : null,
+    extracurriculars,
+    honors,
+    personalFactors: {
+      firstGen: params.get("fg") === "1",
+      legacy: params.get("leg") === "1",
+      recruitedAthlete: params.get("ath") === "1",
+    },
   };
 
-  const allResults = useMemo(() => predictAll(gpas, colleges), [gpas.unweighted, gpas.weighted, gpas.academic, gpas.grade10to12, apCoursesParam]);
+  const allResults = useMemo(() => predictAll(gpas, colleges), [gpas.unweighted, gpas.weighted, gpas.academic, gpas.grade10to12, apCoursesParam, ecsParam, honParam]);
 
   const [filters, setFilters] = useState({
     search: "",
@@ -71,7 +84,6 @@ export default function Results() {
       filtered = filtered.filter(r => r.college.majors?.includes(filters.major));
     }
 
-    // Sort
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "chance-desc": return b.chance - a.chance;
@@ -85,18 +97,36 @@ export default function Results() {
     return filtered;
   }, [allResults, filters, sortBy]);
 
+  const profileParts = [
+    `UW: ${gpas.unweighted}`,
+    `W: ${gpas.weighted}`,
+    `Acad: ${gpas.academic}`,
+    `10-12: ${gpas.grade10to12}`,
+  ];
+  if (gpas.sat) profileParts.push(`SAT: ${gpas.sat}`);
+  if (gpas.act) profileParts.push(`ACT: ${gpas.act}`);
+  if (apCourses.length) profileParts.push(`${apCourses.length} AP`);
+  if (extracurriculars.length) profileParts.push(`${extracurriculars.length} EC`);
+  if (honors.length) profileParts.push(`${honors.length} Honor${honors.length === 1 ? "" : "s"}`);
+  if (gpas.personalFactors.firstGen) profileParts.push("First-Gen");
+  if (gpas.personalFactors.legacy) profileParts.push("Legacy");
+  if (gpas.personalFactors.recruitedAthlete) profileParts.push("Athlete");
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 transition-colors">
       {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
-            <span className="text-lg font-semibold tracking-tight text-slate-900 font-heading">WhatCollege?</span>
+            <span className="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100 font-heading">WhatCollege?</span>
           </Link>
-          <PDFExportButton results={filteredResults} gpas={gpas} />
+          <div className="flex items-center gap-2">
+            <PDFExportButton results={filteredResults} gpas={gpas} />
+            <ThemeToggle />
+          </div>
         </div>
       </nav>
 
@@ -109,19 +139,14 @@ export default function Results() {
             transition={{ duration: 0.4 }}
             className="mb-6"
           >
-            <Link to="/calculate" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600 transition-colors mb-4">
+            <Link to="/calculate" className="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors mb-4">
               <ArrowLeft className="w-3.5 h-3.5" />
-              Edit GPAs
+              Edit Profile
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 font-heading">Your Results</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              UW: {gpas.unweighted} · W: {gpas.weighted} · Acad: {gpas.academic} · 10-12: {gpas.grade10to12}
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 font-heading">Your Results</h1>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {profileParts.join(" · ")}
             </p>
-            {apCourses.length > 0 && (
-              <p className="mt-1 text-sm text-slate-500">
-                {apCourses.length} AP Course{apCourses.length === 1 ? "" : "s"}: {apCourses.join(", ")}
-              </p>
-            )}
           </motion.div>
 
           {/* Stats */}
@@ -146,13 +171,13 @@ export default function Results() {
 
           {/* Sort & count */}
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               {filteredResults.length} {filteredResults.length === 1 ? "university" : "universities"}
             </p>
             <div className="flex items-center gap-2">
-              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+              <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 min-w-[140px]" aria-label="Sort results">
+                <SelectTrigger className="h-8 text-xs rounded-lg border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 min-w-[140px]" aria-label="Sort results">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -168,11 +193,11 @@ export default function Results() {
           {/* College list */}
           <div className="space-y-3">
             {filteredResults.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
-                <p className="text-slate-500 text-sm">No universities match your filters.</p>
+              <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+                <p className="text-slate-500 dark:text-slate-400 text-sm">No universities match your filters.</p>
                 <button
                   onClick={() => setFilters({ search: "", rating: "All Ratings", state: "All States", difficulty: "All Levels", major: "All Majors" })}
-                  className="mt-2 text-sm text-blue-600 hover:underline"
+                  className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   Clear all filters
                 </button>
@@ -197,6 +222,9 @@ export default function Results() {
         open={!!selectedResult}
         onClose={() => setSelectedResult(null)}
         apCourses={apCourses}
+        extracurriculars={extracurriculars}
+        honors={honors}
+        personalFactors={gpas.personalFactors}
       />
     </div>
   );
