@@ -1,12 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { base44 } from '@base44/vite-plugin';
-import path from 'node:path';
+import base44 from '@base44/vite-plugin';
 
 export default defineConfig({
   plugins: [
     base44({
-      // Enable legacy imports like @/entities, @/integrations, etc.
       legacySDKImports: process.env.BASE44_LEGACY_SDK_IMPORTS === 'true',
       hmrNotifier: true,
       navigationNotifier: true,
@@ -15,15 +13,4 @@ export default defineConfig({
     }),
     react(),
   ],
-
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-
-  build: {
-    sourcemap: false,
-    target: 'esnext',
-  },
 });
